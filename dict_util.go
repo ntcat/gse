@@ -340,6 +340,21 @@ func (seg *Segmenter) Reader(reader *bufio.Reader, files ...string) error {
 			size, text, freqText, pos, fsErr = seg.ReadN(reader)
 		}
 
+		freq = seg.Size(size, text, freqText)
+		if freq == 0.0 && fsErr != io.EOF {
+			continue
+		}
+
+		if size == 2 {
+			// No part of speech, marked as an empty string
+			pos = ""
+		}
+
+		// Add participle tokens to the dictionary
+		words := seg.SplitTextToWords([]byte(text))
+		token := Token{text: words, freq: freq, pos: pos}
+		seg.Dict.AddToken(token)
+
 		if fsErr != nil {
 			if fsErr == io.EOF {
 				// End of file
@@ -362,21 +377,6 @@ func (seg *Segmenter) Reader(reader *bufio.Reader, files ...string) error {
 					file, line, fsErr.Error())
 			}
 		}
-
-		freq = seg.Size(size, text, freqText)
-		if freq == 0.0 {
-			continue
-		}
-
-		if size == 2 {
-			// No part of speech, marked as an empty string
-			pos = ""
-		}
-
-		// Add participle tokens to the dictionary
-		words := seg.SplitTextToWords([]byte(text))
-		token := Token{text: words, freq: freq, pos: pos}
-		seg.Dict.AddToken(token)
 	}
 
 	return nil
